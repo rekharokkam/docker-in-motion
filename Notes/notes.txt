@@ -1,0 +1,332 @@
+For contianer excercise I ran - docker run -d -p 8080:80 nginx and docker run -d -p 8081:80 nginx
+
+Docker Engine provides lightweight Containerization technology.
+
+Docker Engine comprises of Docker Server (dockerd), Docker Client (docker) and API
+
+Docker Server - dockerd - long running daemon. Its job is to create and manage docker Objects - contaienrs, images, 
+networks, swarms, volumes, etc
+Server listens to requests on the docker socker - unix:///var/run/docker.sock
+
+Docker Client - docker - is a command line interface. Client sends commands to server over the API.
+Ex - docker run, docker create
+docker run - will call the API to create a container and create an image if it doesnt exist already. Start the container
+once it is built ad attach if its required.
+
+API - is the glue between client and the server.
+API's job is to expose server functionality to client.
+This allows us to do 
+    - create, run and control docker contaienrs
+    - build, manage, pull, push docker images
+    - Read, monitor logs from contaienrs
+    - Build, manage networks
+    - Build, control data Volumes with persistant data storage
+    - Proision and manage docker swarms
+    - Scale Services
+
+Docker hub OR docker cloud - is the efficient way to store and distribute images. it can be private or public
+
+Docker Machine - is a virtual host that is setup to run Docker Engine.
+
+
+                            Docker Engine (Heart of Docker)
+                            -------------------------------
+      __________________________|       |                |-----------               
+      |                                 |                           |
+      |                                 |                           |
+    Server                            Client                       API
+
+
+Docker Images Vs Docker containers
+----------------------------------
+Container is an instance of an image.
+Both Container and Image has its own unique ID - this is sha256 hex but the first 12 characters are normally shown.
+
+How to pull docker images
+-------------------------
+docker pull [options] name[:tag|@digest]
+options :: -a :: pulls all tagged images from the repository
+--disable-content-trust :: by default this option is disabled. if enabled does signature checking. 
+    Keys can be obtained from the repository
+
+Preferred ways of docker registry - docker private registry, docker public registry (hub.docker.com)
+Another place to find docker images - store.docker.com :: hosts both free and paid images. 
+
+docker login [options] [server]
+latest tag is not latest version. latest tag only represents the images that is not tagged.
+docker login https://index.docker.io -u rrokkam -p <password> to login into docker hub from CLI
+docker logout https://dtr.guidewire.com :: to logout of guidewire dtr. 
+Just "docker logout" will logout of default registry URL - https://index.docker.io
+
+Docker Image Layers
+-------------------
+docker history [options] Image[Id OR name:tag] - will provide the entire history 
+Ex - docker history -H 53f3fd8007f7 OR docker history -H nginx:1.13.2
+
+docker inspect [options] name|ID
+with docker inspect we can inspect container (default) | images | network | node | service | task | Volume
+Ex - docker inspect --format={{.Config.Cmd}} nginx:1.13.2, docker inspect --format={{.Config}} nginx:1.13.2, 
+docker inspect --format={{.Os}} nginx:1.13.2, docker inspect --format={{.Id}} nginx:1.13.2
+
+Removing Docker Images
+-----------------------
+docker rmi [options] ImageId/ImageName[:TAG]
+Options :: -f :: force removal of the images [this option helps to remove the image that has a running container]
+--no-prune :: do not delete untagged parents :: 
+rmi command removes the top most image and all the underlying images the top most image relies on.
+no-prune command means any parent image that is not tagged will not be removed.
+
+Another way of removing images is by pruning
+docker image prune [options]
+-a :: remove all unused images not just dangling ones.
+-f :: do not prompt for confirmation
+if no option is provided then "docker image prune " tries to remove only dangling image
+
+dangling image - is an intermediate image that is no longer used or referenced by other images.
+dangling layer is a layer that no other layer depending on.
+In the docker client cli - 
+    it sees a layer as an image whose name and tag are both set to "none", this is dangling layer/image
+Command to remove all dangling images :: "docker image prune --filter dangling=true" AND "docker system prune"
+
+2 images can be pulled at the same time - docker pull nginx:latest && docker pull nginx:1.13.2
+
+Dockerfile Structure
+--------------------
+Each layer builds a temporary container which runs the instruction.
+
+Building Dockerfile
+-------------------
+"docker build ." is the command used to build docker image. 
+It is mandatory to build from the directory where Dockerfile exists.
+
+Inspecting docker image
+-----------------------
+docker inspect <ImageID/ImageName>
+
+Dockerfile good practice
+------------------------
+Its a good idea to merge all the RUN commands together into 1 run command mainly for 2 reasons 
+
+1) Each RUN command creates a new layer/Image while building the Dockerfile.
+2) EAch RUN command also causes cacheing issues. Combining different RUN command prevents this situation. 
+    Refer to cache_busting Dockerfile
+
+By having separate RUN command we are also risking caching issue. After building the image all the layers of that
+image are stored in docker cache.
+
+EX - 
+
+First time
+-----------
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install -y vim 
+
+second time
+------------
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install -y vim ngnix
+
+When u compare the 2 examples above, update and upgrade are not run second time after the first built. After the 
+first run these instructions are cached. So when second run is executed 1 and 2nd line are not executed due to 
+cacheing. So there is a possibility of installing an old version of nginx since the apt-get didnt get updated. 
+
+When all the run commands are merged (refer to cache_busting/Dockerfile) then we are running the command 
+of updating the install packages again. This technique is called cache_busting.
+
+Its a good idea to pin the version of a software while installing (refer to cache_busting\Dockerfile) 
+as this helps in cache_busting.
+
+TO reduce the file size of Image is to remove the caching from time to time. refer to the cache_busting\Dockerfile
+Each Docker Image should have only 1 concern. And we should be installing the software that supports this concern.
+
+Dockerfile Copying and Adding
+-----------------------------
+2 very useful instructions are COPY and ADD.
+COPY instruction will copy new files and directories into the docker file system.
+2 ways for COPY 
+
+COPY /code/mysite /var/www/mysite
+COPY ["/code/my site" "/var/www/mysite"]
+COPY <Source location of local file> <destination directory in the docker where the file should be added to>
+
+destination can be either relative or absolute. If relative its relative to working directory.
+
+COPY /code/my* /var/www - copy everything that started with the word "my"
+COPY /code/mysite/page?.html /var/www/mysite - ? replaces only one single character. Here it copies anything like :: 
+page.html / pages.html / paged.html
+
+ADD - does everything COPY can do and more
+ADD http://some-website.com/css/main.css /var/www/mysite/temp.css - here ADD command downsloads the css from provided site 
+and adds to the docker file
+ADD resources/some-compressed-file-linux-x64.tar.gz /usr/local :: here ADD extracts the compressed file on the functionality
+if we were to use COPY instead of ADD then we need to add more layers to the Dockerfile. Using ADD command less layers and 
+small image.
+
+COPY resources/some-compressed-file-linux-x64.tar.gz /temp
+RUN tar -zxvf /tmp/resources/some-compressed-file-linux-x64.tar.gz -C /usr/local
+RUN rm /tmp/resources/some-compressed-file-linux-x64.tar.gz
+
+It is required that files and directories for ADD and COPY command be available within the context of Dockerfile. Meaning
+the files should either be at the same level or subfolders but cannot be higher or anywhere else
+
+
+Docker environmental variables
+------------------------------
+ENV key value :: 
+
+ENV DOC_ROOT /var/www/mysite-dev
+ADD code/sites/mysite ${DOC_ROOT}
+
+Be careful of file size.
+ENV values are baked into the image.
+
+How to pass Variables into the build
+------------------------------------
+If any layer changes then all the layers below that layer will be re-run.
+passing argument values from command line "docker build --build-arg JQUERY_VERSION_ARG=3.0.0 ." 
+Do not pass any sensitive information in the docker argument command as it will be visible in the docker history.
+
+How to quickly remove unused images
+-----------------------------------
+docker images :: will display only the final images
+docker images -a :: will display final images along with intermediate images.
+
+docker image rm <imageId>/name:tag is equivalent to docker rmi <imageId>/name:tag
+
+docker rmi $(docker images -aq) 
+docker images -q -a :: will provide all the Ids. 
+In the above command "docker images -q -a" will pass all docker Image Ids including the intermediate image Ids to "docker rmi"
+command.
+
+docker ps :: will return only the running containers.
+docker ps -a :: will return all the containers - running, stopped, hanging
+
+How to tag your images
+----------------------
+without any tag image will be tagged as latest.
+
+clone an existing image :: docker tag SOURCE_IMAGE[:TAG] TARGET_IMAGE[:TAG]
+EX - docker tag ubuntu:16.04 webserver:1.0 :: Here I cloned ubuntu:16.04 into webserver:1.0
+Both the images have the same tag but can be removed using the name[:tag] independently
+
+An image that has no repository and tag can be provided a tag as below
+docker tag 7db9e26eecb7 webserver:2.0
+
+providing a name and a tag while building the docker image 
+docker build -t <REPOSITORY_NAME>/<IMAGE_NAME>:<TAG> .
+REPOSITORY_NAME - where the image lives [docker hub / private repo - dtr.guidewire.com]
+IMAGE_NAME - name of the image
+TAG - tag of the image
+ex - docker build -t dtr.guidewire.com/webserver:1.0 .
+                     [repo]           /[name]   :[tag] [build_context]
+If we are not pushing the image to any repo then repo_name can be left out.
+
+how to push a docker image
+--------------------------
+docker info :: command to find more information on which docker registry I am signed into.
+Registry: https://index.docker.io/v1    /
+
+I first created a local image - docker build -t webserver:1.0
+Then created a clone of it to push to my repo in docker hub - docker tag webserver:1.0 rrokkam/docker-in-motion:1.0
+then pushed the image to the repo - docker push rrokkam/docker-in-motion:1.0
+
+docker inspect <ImageId>/Name:tag gives complete information about the image
+
+How to update remote images
+---------------------------
+everytime you update a new image create a new version and push into the registry
+
+How to create a container from an image
+---------------------------------------
+there are mainly 3 options passed to the container ::
+-i --interactive :: keep STDIN open even if not attached
+-d --detach :: Run container in the background and print container ID
+-t --tty :: Allocate a pseudo TTY
+
+How to create a container from an inbuilt image
+-----------------------------------------------
+$(a command) :: runs the "command" in a sub shell.
+docker rm -f $(docker ps -aq) :: remove all the containers even the ones that are running, stopped, Created, in any state.
+docker run = docker pull + docker run
+
+How to name/rename a container
+------------------------------
+docker rename <current_container_name>/containerId newName
+assigning a name while running the container :: docker run --name webserver -it rrokkam/docker-in-motion-webserver:1.0 bash
+
+How to stop a container
+-----------------------
+docker stop <containerId>/<Container_name>
+Multiple containers can be stopped by providing multiple Ids/Names seperated by space
+
+How to start a container
+------------------------
+Multiple containers can be started providing the containerId/name seperated by space.
+docker start <containerId>/<Container_name> 
+-a :: attached STDOUT/STDERR and forward signals
+-i :: attached container's STDIN
+
+docker run -it rrokkam/docker-in-motion-webserver:1.2 php -a :: here container is started in the interactive mode
+exit out of the running container.
+docker start -a <previous container Id> then container will start in the interactive mode. on exit container continues to run.
+docker start -i <previous container Id> then container will start in the interactive mode. On exit container also exits.
+
+How to restart a container
+--------------------------
+docker restart containerId/containerName
+-t indicates the seconds to wait for before stoppping the container
+
+How to run a command against a container
+----------------------------------------
+If bash is the entrypoint then we can supply different things like - echo, php version
+when u provide bash as the entrypoint it is a good thing to provide -t option to add pseudo TTY
+
+EX - 
+docker run rrokkam/docker-in-motion-webserver:1.2 echo "hey there" - outputs "hey there". 
+When you do "docker start -a <this container Id> it outputs hey there
+docker run rrokkam/docker-in-motion-webserver:1.2 php -v
+docker run -it rrokkam/docker-in-motion-webserver:1.2 php -a
+
+
+How to get inside a running container
+-------------------------------------
+"docker exec" is the command used to get inside an already running container.
+docker exec -it <name of the container> bash
+
+To get into the container as a different user :: docker exec -it -u www-data webserver bash
+-e used along with docker run and docker exec to set ENV and ARG variables.
+
+How to adjust the working directory
+-----------------------------------
+
+How to adjust the user
+----------------------
+Adding a USER command to the Dockerfile will tell the docker to run any subsquent commands as that user.
+Also when the docker container runs it runs as that user.
+
+How to run the web server
+-------------------------
+EXPOSE <space seperated list of ports>
+This command tells the docker that container should listen on the specified network ports when running
+PS - we are not publishing these ports, container only listens on these ports
+
+2 parameters are available for publishing the ports to the host which running the docker container - docker run
+-p publish a container's ports to the host
+-P publish all exposed ports to random ports on the host
+EX - docker run -td --name con-test -p 80:80 rrokkam/docker-in-motion-webserver:1.5 bash
+
+CMD - this instruction tells the docker to run a command when the continer is running. Only one command can be issued
+in the docker file. If multiple commands are issued then the last one will be executed.
+Usually this command is used as the last instruction in the docker file.
+There are couple ways to use CMD command - 
+    - array format :: CMD ["Executable", "Parameter 1 that executable can", "Parameter 2 that executable can"]
+    - entry point instructions :: CMD ["Parameter 1", "Parameter 2"]
+    - shell format :: CMD command -parameter1, -parameter2
+
+General security good practices
+-------------------------------
+DIND - unless it is mandatory and compelling do not run docker inside another docker container.
+if needed make use of SELinux and iptables for security.
+

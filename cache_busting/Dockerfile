@@ -30,7 +30,7 @@ WORKDIR ${DOC_ROOT}
 COPY sites/mysite .
 
 #Add virtual host configuration file
-ADD code/apache/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf
+ADD apache/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf
 ADD https://code.jquery.com/jquery-${JQUERY_VERSION}.min.js js/
 
 # removed 443 earlier it was EXPOSE 80 443

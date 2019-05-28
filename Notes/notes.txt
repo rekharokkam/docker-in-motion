@@ -330,3 +330,6 @@ General security good practices
 DIND - unless it is mandatory and compelling do not run docker inside another docker container.
 if needed make use of SELinux and iptables for security.
 
+how to build an image with a database
+-------------------------------------
+tag 1.7 and onwards.

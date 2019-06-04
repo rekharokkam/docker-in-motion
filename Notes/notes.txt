@@ -68,6 +68,11 @@ with docker inspect we can inspect container (default) | images | network | node
 Ex - docker inspect --format={{.Config.Cmd}} nginx:1.13.2, docker inspect --format={{.Config}} nginx:1.13.2, 
 docker inspect --format={{.Os}} nginx:1.13.2, docker inspect --format={{.Id}} nginx:1.13.2
 
+along with docker inspect other inspect options are also available
+
+docker image inspect <Image_name/Image_ID>
+docker container inspect <Container_name/Container_ID>
+
 Removing Docker Images
 -----------------------
 docker rmi [options] ImageId/ImageName[:TAG]
@@ -330,6 +335,55 @@ General security good practices
 DIND - unless it is mandatory and compelling do not run docker inside another docker container.
 if needed make use of SELinux and iptables for security.
 
-how to build an image with a database
+How to build an image with a database
 -------------------------------------
-tag 1.7 and onwards.
+
+
+How to run the database in a Docker Container
+---------------------------------------------
+go to docker hub to check the different options available while running a database container
+command to run the docker image I built from mysql - 
+    docker run --name mysql-con -e MYSQL_ROOT_PASSWORD=test -e MYSQL_DATABASE=docker_in_motion -d mysql-test
+
+Other options that can be passed into the docker image :: MYSQL_USER and MYSQL_PASSWORD if accessing database other than the root user
+
+-e is used to pass key value pairs to the container for ARG variables
+
+How to run the database container
+---------------------------------
+finding the names of the docker machines running on the system 
+docker-machine active
+If you would like to get the ip address of any machine listed above
+docker-machine ip <name>
+
+Legacy way of linking containers using --link <name of the contaier to be linked with>
+
+sqlServer :: 
+    docker run --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=test -e MYSQL_DATABASE=docker_in_motion  -d rrokkam/docker-in-motion-mysql:1.0 --default-authentication-plugin=mysql_native_password
+web-server :: 
+    docker run --name web-server -p 80:80 -h localhost -d --link mysql rrokkam/docker-in-motion-webserver:1.7
+
+Creating a new bridge network 
+docker network create -d bridge <some_network_name>
+Ex - docker network create -d bridge manning_net
+
+docker network ls :: lists all the networks.
+
+Connecting a container to an already created n/w :: docker network connect manning_net mysql
+docker network connect manning_net web-server
+
+connecting both mysql and web-server containers to a common network <manning_net>
+sqlServer :: 
+    docker run --name mysql -e MYSQL_ROOT_PASSWORD=test -e MYSQL_DATABASE=docker_in_motion  -d rrokkam/docker-in-motion-mysql:1.0 --default-authentication-plugin=mysql_native_password
+web-server :: 
+    docker run --name web-server -p 80:80 -h localhost -d rrokkam/docker-in-motion-webserver:1.7
+Network ::
+    docker network create manning_net
+Add both containers to the network ::
+    docker network connect manning_net web-server
+    docker network connect manning_net mysql
+
+After I started the containers i logged into mysql container and executed mysql commands as ::
+    mysql -u root -p <enter>
+    enter the password as 'test'
+    source /schemas/rebuild.sql

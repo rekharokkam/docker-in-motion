@@ -387,3 +387,39 @@ After I started the containers i logged into mysql container and executed mysql 
     mysql -u root -p <enter>
     enter the password as 'test'
     source /schemas/rebuild.sql
+
+What are Storage Options
+-------------------------
+Docker has 3 Storage Options available
+
+1) Docker Volumes - Inside the docker Area of Host File system. Can be shared amongst docker containers. Is a docker Object with its own ID.
+Is not attached to a container.
+2) Bind Mounts - Data is directly coming from Host's file system. Cannot be shared amongst docker containers. Great for dev.
+3) tmpfs - Data is stored in the hosts memory. Non-persistant data. Better performance.
+
+Every Host machine has its own File system. Inside this file system there is a specific area for Docker.
+
+How to make a Bind Mount
+-------------------------
+-v is used for bind mounting host's file system to Container'sfile system inside the container. 
+It takes 2 arguments - Source[Host]:Destination[container]
+Ex - docker run --name bind-test -p 80:80 -h localhost -v /Users/rrokkam/Documents/Rekha/personal_workspace/docker_in_motion/code/projectFiles:/var/www/project -d rrokkam/docker-in-motion-webserver:1.7
+
+cd to :: /var/www/project. Then create a file from the host file system :: file-from-host.txt
+I added text to this file Once from the host and next from inside the container. Irrespective of from where I added the text I could see the changes.
+
+How to Create a Docker Volume
+-----------------------------
+It is a docker Object not attached to any container having its own ID. Docker VOlume can be removed just like any other Docker Object.
+Creating a docker volume - docker volume create test-vol
+
+mounting a docker volume to a container ::
+docker run --name vol-test -v test-vol:/var/www/test-vol -p 80:80 -h localhost -d rrokkam/docker-in-motion-webserver:1.7
+
+Container can have both Bind mount and Docker Volume 
+docker run --name vol-test-again -v test-vol:/var/www/anotherfolder -v /Users/rrokkam/Documents/Rekha/personal_workspace/docker_in_motion/code/projectFiles/:/var/www/project  -p 80:80 -d rrokkam/docker-in-motion-webserver:1.7
+
+Copying a file from a container
+-------------------------------
+docker cp <name of the container/ID>:<path to the folder or file inside of the container> <local path to where the file should be copied to>
+Ex - docker cp tmp-ngnix-container:/etc/nginx/nginx.conf .

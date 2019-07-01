@@ -250,6 +250,7 @@ there are mainly 3 options passed to the container ::
 -d --detach :: Run container in the background and print container ID
 -t --tty :: Allocate a pseudo TTY
 
+
 How to create a container from an inbuilt image
 -----------------------------------------------
 $(a command) :: runs the "command" in a sub shell.
@@ -401,7 +402,7 @@ Every Host machine has its own File system. Inside this file system there is a s
 
 How to make a Bind Mount
 -------------------------
--v is used for bind mounting host's file system to Container'sfile system inside the container. 
+-v is used for bind mounting host's file system to Container's file system inside the container. 
 It takes 2 arguments - Source[Host]:Destination[container]
 Ex - docker run --name bind-test -p 80:80 -h localhost -v /Users/rrokkam/Documents/Rekha/personal_workspace/docker_in_motion/code/projectFiles:/var/www/project -d rrokkam/docker-in-motion-webserver:1.7
 
@@ -411,7 +412,7 @@ I added text to this file Once from the host and next from inside the container.
 How to Create a Docker Volume
 -----------------------------
 It is a docker Object not attached to any container having its own ID. Docker VOlume can be removed just like any other Docker Object.
-Creating a docker volume - docker volume create test-vol
+Creating a docker volume :: docker volume create <volume_name> Ex - docker volume create mysql_data
 
 mounting a docker volume to a container ::
 docker run --name vol-test -v test-vol:/var/www/test-vol -p 80:80 -h localhost -d rrokkam/docker-in-motion-webserver:1.7
@@ -423,3 +424,52 @@ Copying a file from a container
 -------------------------------
 docker cp <name of the container/ID>:<path to the folder or file inside of the container> <local path to where the file should be copied to>
 Ex - docker cp tmp-ngnix-container:/etc/nginx/nginx.conf .
+
+How to copy files into a container <- wrong title :: Actual title -> demonstrate data persistance with docker volume
+--------------------------------------------------------------------------------------------------------------------
+totally misleading chapter title
+I created a docker volume :: docker volume create mysql_data
+sql container :: docker run --name mysql -e MYSQL_ROOT_PASSWORD=test -e MYSQL_DATABASE=docker_in_motion  -d -v mysql_data:/var/lib/mysql  rrokkam/docker-in-motion-mysql:1.0 --default-authentication-plugin=mysql_native_password
+web container :: docker run --name web-server -p 80:80 -h localhost -d --link mysql rrokkam/docker-in-motion-webserver:1.7
+
+I deleted an existing person and added a new person through the UI :: http://localhost
+I removed the mysql container. If UI is refreshed, there will be an exception. 
+Created a new sql container mounting the same docker volume as before :: 
+docker run --name mysql -e MYSQL_ROOT_PASSWORD=test -e MYSQL_DATABASE=docker_in_motion  -d -v mysql_data:/var/lib/mysql  rrokkam/docker-in-motion-mysql:1.0 --default-authentication-plugin=mysql_native_password
+I am able to see the new person added, deleted record is not visible.
+
+How to list your volumes
+-------------------------
+listing :: docker volume ls
+for general help with volumes :: docker volume --help
+for help with specific docker volume operation :: docker volume create --help
+for pruning unused volumes :: docker volume prune
+for creating a volume :: docker volume create <volume_name> Ex - docker volume create mysql_data
+for removing a volume :: docker volume rm <docker_volume_1> <docker_volume_2> Ex - docker volume rm test test-vol
+
+How to remove a volume <- wrong title :: Actual title -> How to copy files from and to Container
+------------------------------------------------------------------------------------------------
+docker cp SOURCE DESTINATION :: is the command used to copy files from container to host OR from host to container
+
+from host to a running container - I created a dummy file inside the project/items/file-from-host.xtx and then executed copy
+docker cp items/file-from-host.txt web-server:/var/www/mysite-dev, then i execed into the running container to verify.
+
+from running container to host - I execed into the running web-server container and created a file :: file-from-container.txt 
+inside the working directory. Then I existed from the container. Then executed the command :: 
+docker cp web-server:/var/www/mysite-dev .
+
+How to share a volume amongst containers
+----------------------------------------
+Where this can be useful is when One container is generating the data and another container uses that data.
+Ex - One container produces the logs files and another container processes these logs.
+
+Create a docker volume :: docker volume create apache2_logs
+Create a new web-server container :: 
+docker run --name web-server --link mysql -p 80:80 -v apache2_logs:/var/log/apache2 -d rrokkam/docker-in-motion-webserver:1.7
+
+Create a new ubuntu container mapping the docker volume mounted on the web-server container::Run this container in the interactive mode
+docker run -it --name log_checker --volumes-from web-server ubuntu
+Once inside the container go to /var/log/apache2. you can find the apache2 logs. tail the access log ::
+tail -f access.log. Refresh the UI page to see the logs refresh.
+
+

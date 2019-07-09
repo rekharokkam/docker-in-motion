@@ -1,0 +1,24 @@
+version: '3'
+
+services: 
+  web-server:
+    container_name: webCon
+    # for building use 'build' key, for pulling use 'image' key
+    build: apache
+    ports: 
+      - 8080:80
+    links: 
+      - mysql
+
+  mysql:
+    container_name: myDbCon
+    build: mysql
+    environment: 
+      - MYSQL_ROOT_PASSWORD=test
+      - MYSQL_DATABASE=docker_in_motion
+    command: 
+      --default-authentication-plugin=mysql_native_password
+    volumes:
+      - db-data:/var/lib/mysql
+volumes: 
+  db-data:  

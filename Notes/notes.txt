@@ -472,4 +472,33 @@ docker run -it --name log_checker --volumes-from web-server ubuntu
 Once inside the container go to /var/log/apache2. you can find the apache2 logs. tail the access log ::
 tail -f access.log. Refresh the UI page to see the logs refresh.
 
+The Docker Compose Structure
+----------------------------
+docker compose file should be at the root level of the unit. 'Version' key in the yml indicates the version of the docker compose format.
+docker file should be relative to docker-compose
+
+//TODO : Write the docker-compose file. one image local and other pulled from hub. Also explore how to use docker volume and docker n/w
+
+How to run containers quickly
+-----------------------------
+for running in detached mode :: docker-compose up -d
+for building the images and starting new containers each time - docker-compose up -d --build
+for stopping and removing the containers :: docker-compose down
+for help with running :: docker-compose up --help
+for just building the images - docker-compose build
+
+docker-compose up :: everytime creates a new n/w and links all the containers together. 
+docker-compose down :: tears down all the containers + the network created during docker-compose up. But docker volumes are torn down.
+
+How to update all your images
+-----------------------------
+docker-compose build :: just rebuilds the images if there are any changes but does not change anything with containers.
+docker-compose up (-d) :: will re-create new containers if the image the container is associated with has changed.
+
+How to remove all of your volumes
+---------------------------------
+
+add volumes: to create docker volumes and associte with a container. docker-compose down will not destroy the docker volume.
+
+
 

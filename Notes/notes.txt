@@ -488,7 +488,8 @@ for help with running :: docker-compose up --help
 for just building the images - docker-compose build
 
 docker-compose up :: everytime creates a new n/w and links all the containers together. 
-docker-compose down :: tears down all the containers + the network created during docker-compose up. But docker volumes are torn down.
+docker-compose down :: will only stop the containers started/created by "up" command.
+docker-compose down :: tears down all the containers + the network created during docker-compose up. But docker volumes are not torn down.
 
 How to update all your images
 -----------------------------
@@ -500,5 +501,18 @@ How to remove all of your volumes
 
 add volumes: to create docker volumes and associte with a container. docker-compose down will not destroy the docker volume.
 
+Notes from Target internal training
+-----------------------------------
+docker run --rm - this command will remove the container once it is stopped
+ex - docker run -p 8000:80 --rm hub.docker.target.com/nginx
 
+Way to pull an image from a specific docker hub is - docker run -p 8000:80 --rm -d hub.docker.target.com/nginx:pearl
+
+mongodb and mongodb-express exists together. If both the images are pulled together as in target-training folder docker-compose then mongodb is not accessible over the port 27017
+
+if docker compose is named differently from the regular standard, then use docker compose as - 
+docker-compose -f docker-compose-dev.yml up
+
+docker system df :: is used to find the system infra usage. 
+docker system df -v :: is used for finding the volumes and images disk usage
 

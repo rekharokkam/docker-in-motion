@@ -1,0 +1,7 @@
+FROM hub.docker.target.com/nginx
+
+RUN apt-get install nginx-module-geoip && apt-get clean
+
+ADD index.html /usr/share/nginx/html/index.html
+
+CMD ["nginx", "-g", "daemon off;"]
